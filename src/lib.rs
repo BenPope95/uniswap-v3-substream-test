@@ -26,7 +26,7 @@ use crate::pb::uniswap::{Erc20Token, Erc20Tokens, Pool, Pools};
 use crate::price::WHITELIST_TOKENS;
 use crate::utils::{ERROR_POOL, UNISWAP_V3_FACTORY};
 use std::ops::{Div, Mul, Sub};
-use pb::uniswap::TokenDeployments;
+use pb::uniswap::{TokenDeployments, TokenDeployment};
 use substreams::errors::Error;
 use substreams::key;
 use substreams::pb::substreams::{store_delta, Clock};
@@ -41,17 +41,42 @@ use substreams_entity_change::pb::entity::EntityChanges;
 use substreams_entity_change::tables::Tables;
 use substreams_ethereum::{pb::eth as ethpb, Event as EventTrait};
 
+fn format_hex(input: &Vec<u8>) -> String {
+    todo!();
+}
+
 #[substreams::handlers::map]
 pub fn map_token_deployments(block: Block) -> Result<TokenDeployments, Error> {
-    let deployments = block.calls().filter_map(|(callview)| {
+    let mut token_deployments = vec![];
+    for callview in block.calls() {
         if callview.transaction.to.len() == 0 && callview.transaction.input.len() > 100 {
-            let storage_changes = callview.call.storage_changes;
-            let is_name: bool =  s.chars().any(|c| c.is_lowercase()) && s.chars().all(|c| c.is_lowercase() || c.is_whitespace());
-            let is_symbol: bool = (s.len() == 3 || s.len() == 4) && s.chars().all(|c| c.is_uppercase());
-        };
-        
-    })
+            let storage_changes = &callview.call.storage_changes;
+            let token_address = format_hex(&callview.call.address);
+            for i in 1..storage_changes.len() {
+                let prev_change = &storage_changes[i - 1].new_value;
+                let curr_change = &storage_changes[i].new_value;
+                let prev_string = String::from_utf8(prev_change.clone()); 
+                let curr_string = String::from_utf8(curr_change.clone());
+                if let (Ok(prev_string), Ok(curr_string)) = (prev_string, curr_string) {
+                    let is_name =  prev_string.chars().any(|c| c.is_lowercase());
+                    let is_symbol = curr_string.chars().all(|c| c.is_uppercase() && !c.is_whitespace());
+                    if is_name && is_symbol {
+                        token_deployments.push(TokenDeployment {
+                            address: token_address.clone(),
+                            name: prev_string,
+                            symbol: curr_string,
+                            decimals: "".to_string()
+                        });
+                    }
 
+                };
+            }
+           
+            
+        };
+    
+    }
+    Ok(TokenDeployments {deployment: token_deployments})
 }
 
 #[substreams::handlers::map]
