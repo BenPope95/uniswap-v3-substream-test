@@ -2,6 +2,17 @@ syntax = "proto3";
 
 package uniswap.types.v1;
 
+message TokenDeployment {
+  string address = 1;
+  string name = 2;
+  string symbol = 3;
+  string decimals = 4;
+}
+
+message TokenDeployments {
+  repeated TokenDeployment deployment = 1;
+}
+
 message ERC20Tokens {
   repeated ERC20Token tokens = 1;
 }

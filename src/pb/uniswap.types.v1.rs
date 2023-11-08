@@ -1,6 +1,24 @@
 // @generated
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TokenDeployment {
+    #[prost(string, tag="1")]
+    pub address: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag="3")]
+    pub symbol: ::prost::alloc::string::String,
+    #[prost(string, tag="4")]
+    pub decimals: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TokenDeployments {
+    #[prost(message, repeated, tag="1")]
+    pub deployment: ::prost::alloc::vec::Vec<TokenDeployment>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Erc20Tokens {
     #[prost(message, repeated, tag="1")]
     pub tokens: ::prost::alloc::vec::Vec<Erc20Token>,

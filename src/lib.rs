@@ -26,6 +26,7 @@ use crate::pb::uniswap::{Erc20Token, Erc20Tokens, Pool, Pools};
 use crate::price::WHITELIST_TOKENS;
 use crate::utils::{ERROR_POOL, UNISWAP_V3_FACTORY};
 use std::ops::{Div, Mul, Sub};
+use pb::uniswap::TokenDeployments;
 use substreams::errors::Error;
 use substreams::key;
 use substreams::pb::substreams::{store_delta, Clock};
@@ -39,6 +40,19 @@ use substreams::{log, Hex};
 use substreams_entity_change::pb::entity::EntityChanges;
 use substreams_entity_change::tables::Tables;
 use substreams_ethereum::{pb::eth as ethpb, Event as EventTrait};
+
+#[substreams::handlers::map]
+pub fn map_token_deployments(block: Block) -> Result<TokenDeployments, Error> {
+    let deployments = block.calls().filter_map(|(callview)| {
+        if callview.transaction.to.len() == 0 && callview.transaction.input.len() > 100 {
+            let storage_changes = callview.call.storage_changes;
+            let is_name: bool =  s.chars().any(|c| c.is_lowercase()) && s.chars().all(|c| c.is_lowercase() || c.is_whitespace());
+            let is_symbol: bool = (s.len() == 3 || s.len() == 4) && s.chars().all(|c| c.is_uppercase());
+        };
+        
+    })
+
+}
 
 #[substreams::handlers::map]
 pub fn map_pools_created(block: Block) -> Result<Pools, Error> {
