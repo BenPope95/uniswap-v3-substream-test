@@ -29,6 +29,22 @@ binaries:
 network: mainnet
 
 modules:
+  - name: map_token_deployments
+    kind: map
+    initialBlock: 11703786
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:uniswap.types.v1.TokenDeployments
+    doc: |
+      This module will loop over block transactions and detect pools created events. 
+      Once the pool created events have been detected, `Pools` structs will be emitted out of the module.
+      
+      Try with
+      ```
+      substreams gui substreams.yaml map_pools_created -t +1000
+      ```
+ 
   - name: map_pools_created
     kind: map
     initialBlock: 12369621

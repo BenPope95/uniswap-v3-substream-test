@@ -25,8 +25,9 @@ use crate::pb::uniswap::{events, Events};
 use crate::pb::uniswap::{Erc20Token, Erc20Tokens, Pool, Pools};
 use crate::price::WHITELIST_TOKENS;
 use crate::utils::{ERROR_POOL, UNISWAP_V3_FACTORY};
+use abi::erc20::functions::Symbol;
+use pb::uniswap::{TokenDeployment, TokenDeployments};
 use std::ops::{Div, Mul, Sub};
-use pb::uniswap::{TokenDeployments, TokenDeployment};
 use substreams::errors::Error;
 use substreams::key;
 use substreams::pb::substreams::{store_delta, Clock};
@@ -41,43 +42,101 @@ use substreams_entity_change::pb::entity::EntityChanges;
 use substreams_entity_change::tables::Tables;
 use substreams_ethereum::{pb::eth as ethpb, Event as EventTrait};
 
-fn format_hex(input: &Vec<u8>) -> String {
-    todo!();
+pub fn format_hex(address: &[u8]) -> String {
+    format!("0x{}", Hex(address).to_string())
 }
 
 #[substreams::handlers::map]
 pub fn map_token_deployments(block: Block) -> Result<TokenDeployments, Error> {
     let mut token_deployments = vec![];
     for callview in block.calls() {
-        if callview.transaction.to.len() == 0 && callview.transaction.input.len() > 100 {
+        if
+        /* callview.transaction.to.len() == 0 && */
+        callview.transaction.input.len() > 100
+            && format_hex(&callview.transaction.hash)
+                == "0x326f3aeeac0f1df3b03b62ae0cb5cf8c9e91c2df897aabde43605c052857fbbb"
+        {
             let storage_changes = &callview.call.storage_changes;
+            substreams::log::info!("length of storage changes {:?}", storage_changes.len());
+            //let token_address = format_hex(&callview.call.address);
+            // let name_bytes = &callview.call.storage_changes[0].new_value;
+            // let symbol_bytes = &callview.call.storage_changes[1].new_value;
+            // let padded_name = String::from_utf8(name_bytes.clone());
+            // let padded_symbol = String::from_utf8(symbol_bytes.clone());
+            // let name = match padded_name {
+            //     Ok(s) => s.replace('\u{0000}', "").replace("\"", ""),
+            //     Err(_) => Error::Unexpected("error parsing name".to_string()).to_string(),
+            // };
+            // let symbol = match padded_symbol {
+            //     Ok(s) => s.replace('\u{0000}', "").replace("\"", ""),
+            //     Err(_) => Error::Unexpected("error parsing symbol".to_string()).to_string(),
+            // };
+            // token_deployments.push(TokenDeployment {
+            //     address: token_address,
+            //     name,
+            //     symbol,
+            //     decimals: "".to_string()
+            //     });
+
             let token_address = format_hex(&callview.call.address);
             for i in 1..storage_changes.len() {
                 let prev_change = &storage_changes[i - 1].new_value;
                 let curr_change = &storage_changes[i].new_value;
-                let prev_string = String::from_utf8(prev_change.clone()); 
-                let curr_string = String::from_utf8(curr_change.clone());
-                if let (Ok(prev_string), Ok(curr_string)) = (prev_string, curr_string) {
-                    let is_name =  prev_string.chars().any(|c| c.is_lowercase());
-                    let is_symbol = curr_string.chars().all(|c| c.is_uppercase() && !c.is_whitespace());
-                    if is_name && is_symbol {
-                        token_deployments.push(TokenDeployment {
-                            address: token_address.clone(),
-                            name: prev_string,
-                            symbol: curr_string,
-                            decimals: "".to_string()
-                        });
-                    }
-
-                };
+                let prev_string_result = String::from_utf8(prev_change.clone());
+                let curr_string_result = String::from_utf8(curr_change.clone());
+                if prev_string_result.is_err() || curr_string_result.is_err() {
+                    continue;
+                }
+                let prev_string = prev_string_result.unwrap();
+                let curr_string = curr_string_result.unwrap();
+                let prev_string_trimmed = prev_string.replace('\u{0000}', "").replace("\"", "").replace('\n', "");
+                let curr_string_trimmed = curr_string.replace('\u{0000}', "").replace("\"", "").replace('\n', "");
+                let is_name = prev_string_trimmed.chars().any(|c| c.is_lowercase());
+                let is_symbol = curr_string_trimmed.chars().all(|c| c.is_uppercase() && !c.is_whitespace());
+                if is_name && is_symbol {
+                            token_deployments.push(TokenDeployment {
+                                address: token_address.clone(),
+                                name: prev_string_trimmed,
+                                symbol: curr_string_trimmed,
+                                decimals: "".to_string(),
+                            });
+                        } else {
+                            token_deployments.push(TokenDeployment {
+                                address: token_address.clone(),
+                                name: prev_string_trimmed,
+                                symbol: curr_string_trimmed,
+                                decimals: "sum ting wong".to_string(),
+                            });
+                        }
+                    };
+                // if let (Ok(prev_string), Ok(curr_string)) = (prev_string, curr_string) {
+                //     let prev_string_trimmed = prev_string.replace('\u{0000}', "").replace("\"", "").replace('\n', "");
+                //     let curr_string_trimmed = prev_string.replace('\u{0000}', "").replace("\"", "").replace('\n', "");
+                //     let is_name = prev_string.chars().any(|c| c.is_lowercase());
+                //     let is_symbol = curr_string.chars().all(|c| c.is_uppercase() && !c.is_whitespace());
+                //     if is_name && is_symbol {
+                //         token_deployments.push(TokenDeployment {
+                //             address: "".to_string(),
+                //             name: prev_string_trimmed,
+                //             symbol: curr_string_trimmed,
+                //             decimals: "".to_string(),
+                //         });
+                //     } else {
+                //         token_deployments.push(TokenDeployment {
+                //             address: token_address.clone(),
+                //             name: prev_string_trimmed,
+                //             symbol: curr_string_trimmed,
+                //             decimals: "sum ting wong".to_string(),
+                //         });
+                //     }
+                // };
             }
-           
-            
         };
-    
+    Ok(TokenDeployments {
+        deployment: token_deployments,
+    })
     }
-    Ok(TokenDeployments {deployment: token_deployments})
-}
+
 
 #[substreams::handlers::map]
 pub fn map_pools_created(block: Block) -> Result<Pools, Error> {
