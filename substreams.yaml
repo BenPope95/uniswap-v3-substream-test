@@ -31,7 +31,7 @@ network: mainnet
 modules:
   - name: map_token_deployments
     kind: map
-    initialBlock: 11703786
+    initialBlock: 11703785
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
