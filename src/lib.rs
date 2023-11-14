@@ -58,7 +58,7 @@ pub fn map_token_deployments(block: Block) -> Result<Erc20Tokens, Error> {
         if logview.receipt.transaction.input.len() > 1000 {
             let topic_0 = format_hex(&logview.log.topics[0]);
             if logview.log.topics.len() == 3 && &topic_0 == TRANSFER_EVENT_SIG {
-                //substreams::log::info!("passed transfer event signature");
+            //substreams::log::info!("passed transfer event signature");
                 //let from_address = format_hex(&logview.log.topics[1]);
                 let log_tx_hash = format_hex(&logview.receipt.transaction.hash);
 
@@ -66,14 +66,21 @@ pub fn map_token_deployments(block: Block) -> Result<Erc20Tokens, Error> {
                 //substreams::log::info!("from address {:?}", from_address);
                 // Check if from_address is the zero address
                 if from_address == "0x0000000000000000000000000000000000000000000000000000000000000000" {
+                    //substreams::log::info!("passed address zero check");
+                    let mut found_token_info: bool = false;
+                    let mut token_name = String::new();
+                    let mut token_symbol = String::new();
+                    let mut token_address = String::new();
                     for callview in block.calls() {
                         let call_tx_hash = format_hex(&callview.transaction.hash);
+                        //substreams::log::info!("log hash {:?}", log_tx_hash);
+                        //substreams::log::info!("call hash {:?}", call_tx_hash);
                         if call_tx_hash == log_tx_hash {
-                            //substreams::log::info!("passed hash check");
+                            substreams::log::info!("passed hash check");
                             let storage_changes = &callview.call.storage_changes;
                             //substreams::log::info!("length of storage changes {:?}", storage_changes.len());
                             for i in 1..storage_changes.len() {
-                                let token_address = Hex(&callview.call.address).to_string();
+                                //let token_address = Hex(&callview.call.address).to_string();
                                 let prev_change = &storage_changes[i - 1].new_value;
                                 let curr_change = &storage_changes[i].new_value;
                                 let prev_string_result = String::from_utf8(prev_change.clone());
@@ -91,38 +98,44 @@ pub fn map_token_deployments(block: Block) -> Result<Erc20Tokens, Error> {
                                 let is_symbol = curr_string_trimmed
                                     .chars()
                                     .all(|c| c.is_uppercase() && !c.is_whitespace());
+                                substreams::log::info!("prev string {:?}", prev_string_trimmed);
+                                substreams::log::info!("curr string {:?}", curr_string_trimmed);
                                 if is_name && is_symbol {
-                                   // substreams::log::info!("passed if check");
-                                    let decimals_value = abi::erc20::functions::Decimals {};
-                                    if let Some(decimals_result) =
-                                        decimals_value.call(hex::decode(&token_address).unwrap())
-                                    {
-                                        token_deployments.push(Erc20Token {
-                                            address: token_address.clone(),
-                                            name: prev_string_trimmed,
-                                            symbol: curr_string_trimmed,
-                                            decimals: decimals_result.to_u64(),
-                                            total_supply: "".to_string(),
-                                            whitelist_pools: vec![],
-                                        });
-                                        
-                                    };
-                                } else {
-                                    substreams::log::info!("failed to grab info from storage changes");
-                                    match rpc::create_uniswap_token(&token_address) {
-                                        Some(token) => {
-                                            token_deployments.push(token);
-                                            substreams::log::info!("created token");
-                                            // continue;
-
-                                       }
-                                        None => {
-                                            substreams::log::info!("failed to create token");
-                                            continue;
-                                        }
-                                    }
+                                    found_token_info = true;
+                                    token_name = prev_string_trimmed;
+                                    token_symbol = curr_string_trimmed;
+                                    token_address = Hex(&callview.call.address).to_string();
                                 }
                             }
+                        }
+
+                        if found_token_info {
+                            let decimals_value = abi::erc20::functions::Decimals {};
+                            if let Some(decimals_result) = decimals_value.call(hex::decode(&token_address).unwrap()) {
+                                token_deployments.push(Erc20Token {
+                                    address: token_address.clone(),
+                                    name: token_name.clone(),
+                                    symbol: token_symbol.clone(),
+                                    decimals: decimals_result.to_u64(),
+                                    total_supply: "".to_string(),
+                                    whitelist_pools: vec![],
+                                });
+                                substreams::log::info!("grabbed info from storage changes");
+                                break;
+                            };
+                        } else {
+                            //substreams::log::info!("failed to grab info from storage changes");
+                            // match rpc::create_uniswap_token(&token_address) {
+                            //     Some(token) => {
+                            //         token_deployments.push(token);
+                            //         substreams::log::info!("created token");
+                            //         // continue;
+                            //     }
+                            //     None => {
+                            //         substreams::log::info!("failed to create token");
+                            //         continue;
+                            //     }
+                            // }
                         }
                     }
                 }
@@ -133,6 +146,9 @@ pub fn map_token_deployments(block: Block) -> Result<Erc20Tokens, Error> {
         tokens: token_deployments,
     })
 }
+
+// #[substreams::handlers::store]
+// pub fn store_token_deployments()
 
 #[substreams::handlers::map]
 pub fn map_pools_created(block: Block) -> Result<Pools, Error> {
