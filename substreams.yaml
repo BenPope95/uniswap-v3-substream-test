@@ -31,11 +31,11 @@ network: mainnet
 modules:
   - name: map_token_deployments
     kind: map
-    initialBlock: 11703785
+    initialBlock: 11703780
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
-      type: proto:uniswap.types.v1.TokenDeployments
+      type: proto:uniswap.types.v1.ERC20Tokens
     doc: |
       This module will loop over block transactions and detect pools created events. 
       Once the pool created events have been detected, `Pools` structs will be emitted out of the module.

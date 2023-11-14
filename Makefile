@@ -1,6 +1,6 @@
 ENDPOINT ?= api-unstable.streamingfast.io:443
 GRAPH_CONFIG ?= ../graph-node-dev/config/graphman.toml
-STOP_BLOCK ?= +100
+STOP_BLOCK ?= +10
 
 .PHONY: build
 build:
