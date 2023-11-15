@@ -44,12 +44,21 @@ modules:
       ```
       substreams gui substreams.yaml map_pools_created -t +1000
       ```
- 
+  - name: store_token_deployments
+    kind: store
+    updatePolicy: set
+    valueType: proto:uniswap.types.v1.Erc20Token 
+    inputs:
+      - map: map_token_deployments
+    doc: |
+      stores token information for later use in map_pools_created
+
   - name: map_pools_created
     kind: map
     initialBlock: 12369621
     inputs:
       - source: sf.ethereum.type.v2.Block
+      - store: store_token_deployments
     output:
       type: proto:uniswap.types.v1.Pools
     doc: |

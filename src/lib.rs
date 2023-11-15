@@ -147,11 +147,15 @@ pub fn map_token_deployments(block: Block) -> Result<Erc20Tokens, Error> {
     })
 }
 
-// #[substreams::handlers::store]
-// pub fn store_token_deployments()
+#[substreams::handlers::store]
+pub fn store_token_deployments(tokens: Erc20Tokens, store: StoreSetProto<Erc20Token>) {
+    for token in tokens.tokens {
+        store.set(0, &token.address, &token);
+    }
+}
 
 #[substreams::handlers::map]
-pub fn map_pools_created(block: Block) -> Result<Pools, Error> {
+pub fn map_pools_created(block: Block, token_store: StoreGetProto<Erc20Token>) -> Result<Pools, Error> {
     use abi::factory::events::PoolCreated;
 
     Ok(Pools {
