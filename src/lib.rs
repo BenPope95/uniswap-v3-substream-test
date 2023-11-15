@@ -26,6 +26,7 @@ use crate::pb::uniswap::{Erc20Token, Erc20Tokens, Pool, Pools};
 use crate::price::WHITELIST_TOKENS;
 use crate::utils::{ERROR_POOL, UNISWAP_V3_FACTORY};
 use abi::erc20::functions::Symbol;
+use ethabi::token;
 use pb::uniswap::{TokenDeployment, TokenDeployments};
 //use std::intrinsics::mir::Return;
 use std::ops::{Div, Mul, Sub};
@@ -163,6 +164,7 @@ pub fn map_pools_created(block: Block, token_store: StoreGetProto<Erc20Token>) -
             .events::<PoolCreated>(&[&UNISWAP_V3_FACTORY])
             .filter_map(|(event, log)| {
                 log::info!("pool addr: {}", Hex(&event.pool));
+                substreams::log::info!("fuck");
 
                 if event.pool == ERROR_POOL {
                     return None;
@@ -170,6 +172,42 @@ pub fn map_pools_created(block: Block, token_store: StoreGetProto<Erc20Token>) -
 
                 let token0_address = Hex(&event.token0).to_string();
                 let token1_address = Hex(&event.token1).to_string();
+
+                let token_0 = if let Some(mut token) = token_store.get_at(0, &token0_address) {
+                    token.total_supply = rpc::token_total_supply_call(&token0_address)
+                    .unwrap_or(BigInt::zero())
+                    .to_string();
+                    token
+                }  else {
+                    match rpc::create_uniswap_token(&token0_address) {
+                        Some(mut token) => {
+                            token.total_supply = rpc::token_total_supply_call(&token0_address)
+                                .unwrap_or(BigInt::zero())
+                                .to_string();
+                            token
+                        }
+                        None => return None, // Unable to create token0, so discard this event
+                    }
+                };
+
+                let token_1 = if let Some(mut token) = token_store.get_at(0, &token1_address) {
+                    token.total_supply = rpc::token_total_supply_call(&token1_address)
+                    .unwrap_or(BigInt::zero())
+                    .to_string();
+                    token
+                }  else {
+                    match rpc::create_uniswap_token(&token1_address) {
+                        Some(mut token) => {
+                            token.total_supply = rpc::token_total_supply_call(&token1_address)
+                                .unwrap_or(BigInt::zero())
+                                .to_string();
+                            token
+                        }
+                        None => return None, // Unable to create token0, so discard this event
+                    }
+                };
+    
+
 
                 //todo: question regarding the ignore_pool line. In the
                 // uniswap-v3 subgraph, they seem to bail out when they
@@ -183,30 +221,8 @@ pub fn map_pools_created(block: Block, token_store: StoreGetProto<Erc20Token>) -
                     tick_spacing: event.tick_spacing.into(),
                     log_ordinal: log.ordinal(),
                     ignore_pool: event.pool == ERROR_POOL,
-                    token0: Some(match rpc::create_uniswap_token(&token0_address) {
-                        Some(mut token) => {
-                            token.total_supply = rpc::token_total_supply_call(&token0_address)
-                                .unwrap_or(BigInt::zero())
-                                .to_string();
-                            token
-                        }
-                        None => {
-                            // We were unable to create the uniswap token, so we discard this event entirely
-                            return None;
-                        }
-                    }),
-                    token1: Some(match rpc::create_uniswap_token(&token1_address) {
-                        Some(mut token) => {
-                            token.total_supply = rpc::token_total_supply_call(&token1_address)
-                                .unwrap_or(BigInt::zero())
-                                .to_string();
-                            token
-                        }
-                        None => {
-                            // We were unable to create the uniswap token, so we discard this event entirely
-                            return None;
-                        }
-                    }),
+                    token0: Some(token_0),
+                    token1: Some(token_1),
                     ..Default::default()
                 })
             })
