@@ -31,7 +31,7 @@ network: mainnet
 modules:
   - name: map_token_deployments
     kind: map
-    initialBlock: 12369621
+    initialBlock: 18578510
     inputs:
       - source: sf.ethereum.type.v2.Block
     output:
@@ -55,7 +55,7 @@ modules:
 
   - name: map_pools_created
     kind: map
-    initialBlock: 12369621
+    initialBlock: 18578510
     inputs:
       - source: sf.ethereum.type.v2.Block
       - store: store_token_deployments
@@ -100,7 +100,7 @@ modules:
 
   - name: map_tokens_whitelist_pools
     kind: map
-    initialBlock: 12369621
+    initialBlock: 18578510
     inputs:
       - map: map_pools_created
     output:
@@ -127,7 +127,7 @@ modules:
 
   - name: map_extract_data_types
     kind: map
-    initialBlock: 12369621
+    initialBlock: 18578510
     inputs:
       - source: sf.ethereum.type.v2.Block
       - store: store_pools_created
@@ -156,7 +156,7 @@ modules:
   - name: store_prices
     kind: store
     updatePolicy: set
-    initialBlock: 12369621
+    initialBlock: 18578510
     valueType: bigdecimal
     inputs:
       - source: sf.substreams.v1.Clock
@@ -174,7 +174,7 @@ modules:
   - name: store_pool_liquidities
     kind: store
     updatePolicy: set
-    initialBlock: 12369621
+    initialBlock: 18578510
     valueType: bigint
     inputs:
       - source: sf.substreams.v1.Clock
@@ -221,7 +221,7 @@ modules:
   - name: store_eth_prices
     kind: store
     updatePolicy: set
-    initialBlock: 12369621
+    initialBlock: 18578510
     valueType: bigdecimal
     inputs:
       - source: sf.substreams.v1.Clock
@@ -244,7 +244,7 @@ modules:
 
   - name: store_token_tvl
     kind: store
-    initialBlock: 12369621
+    initialBlock: 18578510
     updatePolicy: add
     valueType: bigdecimal
     inputs:
@@ -254,7 +254,7 @@ modules:
 
   - name: store_derived_tvl
     kind: store
-    initialBlock: 12369621
+    initialBlock: 18578510
     updatePolicy: set
     valueType: bigdecimal
     inputs:
@@ -269,7 +269,7 @@ modules:
 
   - name: store_derived_factory_tvl
     kind: store
-    initialBlock: 12369621
+    initialBlock: 18578510
     updatePolicy: add
     valueType: bigdecimal
     inputs:
@@ -328,7 +328,7 @@ modules:
 
   - name: graph_out
     kind: map
-    initialBlock: 12369621
+    initialBlock: 18578510
     inputs:
       - source: sf.substreams.v1.Clock
       - store: store_pool_count
