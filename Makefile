@@ -8,7 +8,7 @@ build:
 
 .PHONY: stream
 stream: build
-	substreams run -e $(ENDPOINT) substreams.yaml map_pools_created -s  18578510 -t $(STOP_BLOCK)
+	substreams run -e $(ENDPOINT) substreams.yaml map_token_deployments -s  18578510 -t $(STOP_BLOCK)
 
 .PHONY: graph_out
 graph_out: build
