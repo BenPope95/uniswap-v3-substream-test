@@ -16,7 +16,9 @@ To increase long term efficiency in the uniswap V3 substream by reducing the amo
 1. map_pools_created
 
 ## map_token_deployments
-`pub fn map_token_deployments(block: Block) -> Result<Erc20Tokens, Error> {`
+``` rust
+pub fn map_token_deployments(block: Block) -> Result<Erc20Tokens, Error> {
+```
 
 The map_token_deployments module is the first module I have added. It takes in an ethereum block as an input and returns a result type with the happy path being `Erc20Tokens`,  a struct that contains a vector of `Erc20Token` structs. 
 
