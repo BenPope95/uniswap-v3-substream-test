@@ -66,7 +66,7 @@ Here is where things start to get a little more complicated. I am attempting to 
 This led me to focus on a specific subset of token contracts. Ones that are based on the OpenZeppelin ERC20 standard. The reason for this is that in the ERC20.sol contract the token name and symbol are set in a predictable order in the constructor, with the name being set first and the symbol being set immediately after. This gives us a consistent pattern to look for when going over the storage changes.  
 
 ``` solidity
-ERC20.sol
+//ERC20.sol
  
  
  constructor(string memory name_, string memory symbol_) {
@@ -190,4 +190,35 @@ pub fn store_token_deployments(tokens: Erc20Tokens, store: StoreSetProto<Erc20To
 	}
 }
 ```
+The `store_token_deployments` module is where I store the token info for later use in the `map_pools_created` module. As inputs it takes in `Erc20Tokens` and the `StoreSetProto` struct with the protobuff type set to `Erc20Token`. I loop over the individual `Erc20Token` structs and set each one in a store with the key being the token address.
+
+## map_pools_created
+
+``` rust
+#[substreams::handlers::map]
+
+pub fn map_pools_created(block: Block, token_store: StoreGetProto<Erc20Token>) -> Result<Pools, Error> {
+```
+
+The map_pools_created was included within the original substream. The original `map_pools_created` module within Uniswap V3 Substream initially accepted only a block as an input. It was responsible for extracting pool creation events from the Uniswap Factory V3 contract. These events were then used to construct a `Pool` struct, with `token0` and `token1` fields. The information for these tokens was obtained through RPC calls.
+
+I modified the module to also take in `token_store` as an input. The new module will attempt to grab the token info from the store if possible and only make the rpc calls as a backup. 
+
+The module begins the same with using the `filter_map` function to process the `PoolCreated` events. `token_1_address` and `token_0_address` are extracted from the event.
+
+``` rust
+Ok(Pools {
+	pools: block
+		.events::<PoolCreated>(&[&UNISWAP_V3_FACTORY])
+		.filter_map(|(event, log)| {
+		log::info!("pool addr: {}", Hex(&event.pool));
+		if event.pool == ERROR_POOL {
+		return None;
+
+}
+let token0_address = Hex(&event.token0).to_string();
+let token1_address = Hex(&event.token1).to_string();
+```
+
+I then attempt to grab the token information from the store matching it by its address. If successful it will make one rpc call to grab the total supply. I decided to make the total supply call here rather than when i make the decimals call in the previous module because i figured it was important to have the most current data possible since the total supply is likely to change over the tokens lifetime. If I am not able to grab my token info from the store I make the rpc calls to do so, and if that fails, the entire event is discarded for the sake of having complete accurate data. Once I have my tokens from either the store or the rpc calls, I instantiate the `Pool` struct and use `.collect()` to collect all of the `Pool` structs into `Pools`. Finally the function returns the `Pools` struct.
 
