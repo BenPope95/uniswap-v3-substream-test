@@ -222,3 +222,60 @@ let token1_address = Hex(&event.token1).to_string();
 
 I then attempt to grab the token information from the store matching it by its address. If successful it will make one rpc call to grab the total supply. I decided to make the total supply call here rather than when i make the decimals call in the previous module because i figured it was important to have the most current data possible since the total supply is likely to change over the tokens lifetime. If I am not able to grab my token info from the store I make the rpc calls to do so, and if that fails, the entire event is discarded for the sake of having complete accurate data. Once I have my tokens from either the store or the rpc calls, I instantiate the `Pool` struct and use `.collect()` to collect all of the `Pool` structs into `Pools`. Finally the function returns the `Pools` struct.
 
+``` rust
+let token_0 = if let Some(mut token) = token_store.get_at(0, &token0_address) {
+                    token.total_supply = rpc::token_total_supply_call(&token0_address)
+                        .unwrap_or(BigInt::zero())
+                        .to_string();
+                    token
+                } else {
+                    match rpc::create_uniswap_token(&token0_address) {
+                        Some(mut token) => {
+                            token.total_supply = rpc::token_total_supply_call(&token0_address)
+                                .unwrap_or(BigInt::zero())
+                                .to_string();
+                            token
+                        }
+                        None => return None, // Unable to create token0, so discard this event
+                    }
+                };
+
+                let token_1 = if let Some(mut token) = token_store.get_at(0, &token1_address) {
+                    token.total_supply = rpc::token_total_supply_call(&token1_address)
+                        .unwrap_or(BigInt::zero())
+                        .to_string();
+                    token
+                } else {
+                    match rpc::create_uniswap_token(&token1_address) {
+                        Some(mut token) => {
+                            token.total_supply = rpc::token_total_supply_call(&token1_address)
+                                .unwrap_or(BigInt::zero())
+                                .to_string();
+                            token
+                        }
+                        None => return None, // Unable to create token0, so discard this event
+                    }
+                };
+
+                //todo: question regarding the ignore_pool line. In the
+                // uniswap-v3 subgraph, they seem to bail out when they
+                // match the addr, should we do the same ?
+                Some(Pool {
+                    address: Hex(&log.data()[44..64]).to_string(),
+                    transaction_id: Hex(&log.receipt.transaction.hash).to_string(),
+                    created_at_block_number: block.number,
+                    created_at_timestamp: block.timestamp_seconds(),
+                    fee_tier: event.fee.to_string(),
+                    tick_spacing: event.tick_spacing.into(),
+                    log_ordinal: log.ordinal(),
+                    ignore_pool: event.pool == ERROR_POOL,
+                    token0: Some(token_0),
+                    token1: Some(token_1),
+                    ..Default::default()
+                })
+            })
+            .collect(),
+    })
+}
+```
+
